@@ -1,67 +1,67 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Preferences {
-  static const String keyRememberUser = 'remember_user';
-  static const String keyUsername = 'username';
-  static const String keyTheme = 'isDark';
-  static const String keyLanguage = 'language';
-  static const String keyNotifications = 'notifications';
+  // ---------- USER ----------
+  static const String _userKey = 'username';
+  static const String _rememberKey = 'remember';
 
-  // Guardar usuario (login)
   static Future<void> saveUser(String username) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(keyUsername, username);
-    await prefs.setBool(keyRememberUser, true);
+    await prefs.setString(_userKey, username);
+    await prefs.setBool(_rememberKey, true);
   }
 
-  // Leer usuario
   static Future<String?> getUser() async {
     final prefs = await SharedPreferences.getInstance();
-    final remember = prefs.getBool(keyRememberUser) ?? false;
+    final remember = prefs.getBool(_rememberKey) ?? false;
     if (remember) {
-      return prefs.getString(keyUsername);
+      return prefs.getString(_userKey);
     }
     return null;
   }
 
-  // Cerrar sesión
-  static Future<void> logout() async {
+  static Future<void> clearUser() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(keyUsername);
-    await prefs.setBool(keyRememberUser, false);
+    await prefs.remove(_userKey);
+    await prefs.setBool(_rememberKey, false);
   }
 
-  // ---------------------------
-  // Tema
-  static Future<void> setTheme(bool isDark) async {
+  // ---------- THEME ----------
+  static const String _themeKey = 'dark_theme';
+
+  static Future<void> setTheme(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(keyTheme, isDark);
+    await prefs.setBool(_themeKey, value);
   }
 
   static Future<bool?> getTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(keyTheme);
+    return prefs.getBool(_themeKey);
   }
 
-  // Idioma
-  static Future<void> setLanguage(String lang) async {
+  // ---------- LANGUAGE ----------
+  static const String _languageKey = 'language';
+
+  static Future<void> setLanguage(String value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(keyLanguage, lang);
+    await prefs.setString(_languageKey, value);
   }
 
   static Future<String?> getLanguage() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(keyLanguage);
+    return prefs.getString(_languageKey);
   }
 
-  // Notificaciones (simulación)
-  static Future<void> setNotifications(bool enabled) async {
+  // ---------- NOTIFICATIONS ----------
+  static const String _notifKey = 'notifications';
+
+  static Future<void> setNotifications(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(keyNotifications, enabled);
+    await prefs.setBool(_notifKey, value);
   }
 
   static Future<bool?> getNotifications() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(keyNotifications);
+    return prefs.getBool(_notifKey);
   }
 }
