@@ -103,11 +103,4 @@ class DatabaseHelper {
         'SELECT COUNT(*) as count FROM comments WHERE postId = ?', [postId]);
     return Sqflite.firstIntValue(result) ?? 0;
   }
-
-  Future<List<Post>> getPostsByUser(int userId) async {
-    final db = await database;
-    final result = await db.query('posts', where: 'userId = ?', whereArgs: [userId]);
-    return result.map((e) => Post.fromMap(e)).toList();
-  }
-
 }

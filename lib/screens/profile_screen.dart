@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import '../models/post.dart'; // para la clase Post
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
