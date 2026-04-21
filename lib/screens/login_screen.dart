@@ -56,17 +56,17 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true,
             ),
             const SizedBox(height: 20),
+
             ElevatedButton(
               onPressed: _login,
               child: const Text('Entrar'),
             ),
+
             TextButton(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const RegisterScreen(), // ✅ CORRECTO
-                  ),
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
                 );
               },
               child: const Text('¿No tienes cuenta? Regístrate'),

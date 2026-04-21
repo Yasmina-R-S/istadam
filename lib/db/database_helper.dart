@@ -93,11 +93,24 @@ class DatabaseHelper {
     return await db.insert('posts', post.toMap());
   }
 
-  Future<List<Post>> getPostsByUser(int userId) async {
+  Future<List<Post>> getAllPosts() async {
+    final db = await database;
+    final result = await db.query('posts', orderBy: 'date DESC');
+    List<Post> posts = result.map((e) => Post.fromMap(e)).toList();
+
+    for (var post in posts) {
+      post.username = await getUsernameById(post.userId);
+      post.commentCount = await getCommentCount(post.id!);
+    }
+    return posts;
+  }
+
+  Future<String> getUsernameById(int userId) async {
     final db = await database;
     final result =
-    await db.query('posts', where: 'userId = ?', whereArgs: [userId]);
-    return result.map((e) => Post.fromMap(e)).toList();
+        await db.query('users', where: 'id = ?', whereArgs: [userId]);
+    if (result.isNotEmpty) return result.first['username'] as String;
+    return 'Desconocido';
   }
 
   // ---------- COMMENTS ----------

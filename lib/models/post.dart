@@ -7,6 +7,8 @@ class Post {
   int likes;
   int commentCount; // número de comentarios
 
+  String username;
+
   Post({
     this.id,
     required this.userId,
@@ -14,7 +16,8 @@ class Post {
     required this.description,
     required this.date,
     this.likes = 0,
-    this.commentCount = 0, // inicializamos a 0
+    this.commentCount = 0,
+    this.username = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -25,7 +28,6 @@ class Post {
       'description': description,
       'date': date,
       'likes': likes,
-      // commentCount no hace falta guardar en DB
     };
   }
 
@@ -38,6 +40,7 @@ class Post {
       date: map['date'],
       likes: map['likes'],
       commentCount: 0,
+      username: '',
     );
   }
 }

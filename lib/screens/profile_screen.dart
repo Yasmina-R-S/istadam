@@ -26,8 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ---------------------------
-// Feed filtrado por usuario
+// Feed filtrado
 class FeedScreenFiltered extends StatelessWidget {
   final List<Post> posts;
   final String username;

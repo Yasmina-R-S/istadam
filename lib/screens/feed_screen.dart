@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../db/database_helper.dart';
 import '../models/post.dart';
 import '../utils/preferences.dart';
+import '../widgets/post_widget.dart';
 import 'add_post_screen.dart';
 import 'comments_screen.dart';
 import 'login_screen.dart';
@@ -27,9 +28,10 @@ class _FeedScreenState extends State<FeedScreen> {
   Future<void> _loadUserAndPosts() async {
     final user = await Preferences.getUser();
     if (user == null) {
-      // No hay usuario, volver al login
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
       return;
     }
 
@@ -42,104 +44,104 @@ class _FeedScreenState extends State<FeedScreen> {
       'posts',
       where: 'userId = ?',
       whereArgs: [userId],
+      orderBy: 'date DESC',
     );
 
     posts = result.map((e) => Post.fromMap(e)).toList();
 
-    // Actualizar número de comentarios de cada post
     for (var post in posts) {
       post.commentCount = await dbHelper.getCommentCount(post.id!);
+      post.username = username;
     }
 
-    setState(() {}); // refrescar UI
+    setState(() {});
   }
 
   void _toggleLike(Post post) async {
     final db = await dbHelper.database;
+    final bool wasLiked = post.likes > 0;
+
     setState(() {
-      post.likes = post.likes == 0 ? 1 : 0; // Solo tu usuario
+      post.likes = wasLiked ? 0 : 1;
     });
-    await db.update('posts', {'likes': post.likes},
-        where: 'id = ?', whereArgs: [post.id]);
+
+    await db.update(
+      'posts',
+      {'likes': post.likes},
+      where: 'id = ?',
+      whereArgs: [post.id],
+    );
+
+    final mensaje = wasLiked ? 'Has quitado el me gusta' : 'Has dado me gusta';
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Semantics(
+            liveRegion: true,
+            child: Text(mensaje),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
-  void _openComments(Post post) {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => CommentsScreen(post: post)))
-        .then((_) => _loadUserAndPosts());
+  void _openComments(Post post) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CommentsScreen(post: post)),
+    );
+
+    _loadUserAndPosts();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Feed'),
+        title: Semantics(
+          label: 'Feed de publicaciones',
+          child: const Text('Feed'),
+        ),
       ),
+
       body: posts.isEmpty
-          ? const Center(child: Text('No hay posts aún'))
+          ? Center(
+        child: Semantics(
+          label: 'Todavía no hay publicaciones',
+          child: const Text(
+            'No hay publicaciones todavía',
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
+      )
           : ListView.builder(
         itemCount: posts.length,
         itemBuilder: (context, index) {
           final post = posts[index];
-          return Card(
-            margin: const EdgeInsets.all(10),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 200,
-                    color: Colors.grey[300],
-                    child: const Center(
-                        child: Icon(Icons.image, size: 50)),
-                  ),
-                  const SizedBox(height: 10),
-                  Text('Usuario: $username',
-                      style:
-                      const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(post.description),
-                  Text('Fecha: ${post.date.split(".")[0]}',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                                post.likes > 0
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: Colors.red),
-                            onPressed: () => _toggleLike(post),
-                          ),
-                          Text('${post.likes} likes'),
-                        ],
-                      ),
-                      TextButton(
-                        onPressed: () => _openComments(post),
-                        child: Text(
-                            'Ver comentarios (${post.commentCount})'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          return PostWidget(
+            post: post,
+            username: username,
+            onLike: () => _toggleLike(post),
+            onComment: () => _openComments(post),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () async {
-          await Navigator.push(
-              context, MaterialPageRoute(builder: (_) => AddPostScreen()));
-          _loadUserAndPosts(); // recargar feed después de añadir
-        },
+
+      floatingActionButton: Semantics(
+        label: 'Crear nueva publicación',
+        button: true,
+        child: FloatingActionButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddPostScreen()),
+            );
+            _loadUserAndPosts();
+          },
+          child: const ExcludeSemantics(child: Icon(Icons.add)),
+        ),
       ),
     );
   }

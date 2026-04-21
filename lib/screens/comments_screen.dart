@@ -3,9 +3,11 @@ import '../db/database_helper.dart';
 import '../models/post.dart';
 import '../models/comment.dart';
 import '../utils/preferences.dart';
+import '../widgets/comment_widget.dart';
 
 class CommentsScreen extends StatefulWidget {
   final Post post;
+
   const CommentsScreen({super.key, required this.post});
 
   @override
@@ -15,16 +17,18 @@ class CommentsScreen extends StatefulWidget {
 class _CommentsScreenState extends State<CommentsScreen> {
   final DatabaseHelper dbHelper = DatabaseHelper();
   final TextEditingController _commentController = TextEditingController();
+
   List<Comment> comments = [];
   String username = '';
 
   @override
   void initState() {
     super.initState();
-    _loadComments();
+    _loadData();
   }
 
-  Future<void> _loadComments() async {
+  // Cargar usuario + comentarios
+  Future<void> _loadData() async {
     final user = await Preferences.getUser();
     if (user != null) username = user;
 
@@ -41,6 +45,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
     });
   }
 
+  // Añadir comentario
   void _addComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
@@ -54,48 +59,79 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
     await dbHelper.insertComment(newComment);
     _commentController.clear();
-    _loadComments(); // Actualizar lista inmediatamente
+    await _loadData();
+
+    // SnackBar accesible
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Semantics(
+            liveRegion: true,
+            label: 'Comentario añadido',
+            child: const Text('Comentario añadido'),
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Comentarios')),
+      appBar: AppBar(
+        title: const Text('Comentarios'),
+      ),
+
       body: Column(
         children: [
+          // LISTA DE COMENTARIOS
           Expanded(
             child: comments.isEmpty
-                ? const Center(child: Text('No hay comentarios aún'))
+                ? Center(
+              child: Semantics(
+                label: 'No hay comentarios todavía',
+                child: const Text('No hay comentarios todavía'),
+              ),
+            )
                 : ListView.builder(
               reverse: true,
               itemCount: comments.length,
-              itemBuilder: (context, index) {
-                final comment = comments[index];
-                return ListTile(
-                  title: Text(comment.username),
-                  subtitle: Text(comment.text),
-                  trailing: Text(
-                    comment.date.split('.')[0], // Fecha simplificada
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                );
-              },
+              itemBuilder: (context, index) =>
+                  CommentWidget(comment: comments[index]),
             ),
           ),
+
+          // CAJA PARA ESCRIBIR
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
               children: [
+                // Campo accesible
                 Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(
-                        hintText: 'Escribe un comentario...'),
+                  child: Semantics(
+                    label: 'Escribir un comentario',
+                    textField: true,
+                    child: TextField(
+                      controller: _commentController,
+                      decoration: const InputDecoration(
+                        hintText: 'Escribe un comentario…',
+                      ),
+                    ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _addComment,
+
+                const SizedBox(width: 6),
+
+                // Botón enviar accesible
+                Semantics(
+                  button: true,
+                  label: 'Enviar comentario',
+                  onTapHint: 'Publicar este comentario',
+                  child: IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: _addComment,
+                  ),
                 ),
               ],
             ),
@@ -105,4 +141,3 @@ class _CommentsScreenState extends State<CommentsScreen> {
     );
   }
 }
-

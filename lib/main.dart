@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart';
+import 'theme/app_colors.dart';
 
 void main() {
   runApp(const InstaDAMApp());
 }
+
 class InstaDAMApp extends StatelessWidget {
   const InstaDAMApp({super.key});
 
@@ -12,9 +14,23 @@ class InstaDAMApp extends StatelessWidget {
     return MaterialApp(
       title: 'InstaDAM',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      home: const LoginScreen(),
+
+      theme: ThemeData(
+        scaffoldBackgroundColor: AppColors.background,
+        primaryColor: AppColors.primary,
+
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: AppColors.textPrimary),
+          bodyMedium: TextStyle(color: AppColors.textSecondary),
+        ),
+      ),
+
+      home: const SplashScreen(), // 🔥 IMPORTANTE
     );
   }
 }
