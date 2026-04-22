@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import '../db/database_helper.dart';
 import '../models/post.dart';
 import '../utils/preferences.dart';
@@ -8,7 +9,16 @@ import 'comments_screen.dart';
 import 'login_screen.dart';
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+  // 🔊 7. Parámetros opcionales para mostrar el feed filtrado por usuario
+  //        (se pasan desde ProfileScreen al pulsar un post del grid)
+  final int? filterUserId;
+  final int initialPostIndex;
+
+  const FeedScreen({
+    super.key,
+    this.filterUserId,
+    this.initialPostIndex = 0,
+  });
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -16,8 +26,13 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   final DatabaseHelper dbHelper = DatabaseHelper();
+  final ScrollController _scrollController = ScrollController();
+
   List<Post> posts = [];
   String username = '';
+
+  // Clave global para forzar el scroll semántico al post inicial
+  final List<GlobalKey> _postKeys = [];
 
   @override
   void initState() {
@@ -25,9 +40,16 @@ class _FeedScreenState extends State<FeedScreen> {
     _loadUserAndPosts();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserAndPosts() async {
     final user = await Preferences.getUser();
     if (user == null) {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -36,25 +58,67 @@ class _FeedScreenState extends State<FeedScreen> {
     }
 
     username = user;
-
     final db = await dbHelper.database;
-    final userId = await dbHelper.getUserId(username);
 
-    final result = await db.query(
-      'posts',
-      where: 'userId = ?',
-      whereArgs: [userId],
-      orderBy: 'date DESC',
-    );
+    // 🔊 7. Si filterUserId != null, mostramos solo los posts de ese usuario
+    final List<Map<String, dynamic>> result;
+    if (widget.filterUserId != null) {
+      result = await db.query(
+        'posts',
+        where: 'userId = ?',
+        whereArgs: [widget.filterUserId],
+        orderBy: 'date DESC',
+      );
+    } else {
+      final userId = await dbHelper.getUserId(username);
+      result = await db.query(
+        'posts',
+        where: 'userId = ?',
+        whereArgs: [userId],
+        orderBy: 'date DESC',
+      );
+    }
 
-    posts = result.map((e) => Post.fromMap(e)).toList();
+    final loadedPosts = result.map((e) => Post.fromMap(e)).toList();
 
-    for (var post in posts) {
+    for (var post in loadedPosts) {
       post.commentCount = await dbHelper.getCommentCount(post.id!);
       post.username = username;
     }
 
-    setState(() {});
+    if (!mounted) return;
+    setState(() {
+      posts = loadedPosts;
+      // Preparar una GlobalKey por post para poder hacer scroll al índice inicial
+      _postKeys
+        ..clear()
+        ..addAll(List.generate(posts.length, (_) => GlobalKey()));
+    });
+
+    // 🔊 7. Anunciar que el feed está filtrado y hacer scroll al post pulsado
+    if (widget.filterUserId != null) {
+      SemanticsService.announce(
+        'Feed filtrado por usuario. ${posts.length} publicaciones',
+        TextDirection.ltr,
+      );
+
+      // Scroll al post inicial tras el primer frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToIndex(widget.initialPostIndex);
+      });
+    }
+  }
+
+  /// Hace scroll hasta el post en la posición [index] de la lista.
+  void _scrollToIndex(int index) {
+    if (index <= 0 || !_scrollController.hasClients) return;
+    // Estimación de altura de cada PostWidget (~300dp aprox)
+    const estimatedItemHeight = 300.0;
+    _scrollController.animateTo(
+      index * estimatedItemHeight,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _toggleLike(Post post) async {
@@ -92,18 +156,36 @@ class _FeedScreenState extends State<FeedScreen> {
       context,
       MaterialPageRoute(builder: (_) => CommentsScreen(post: post)),
     );
-
     _loadUserAndPosts();
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🔊 7. Título diferente si estamos en el feed filtrado
+    final appBarTitle = widget.filterUserId != null
+        ? 'Publicaciones de $username'
+        : 'Feed';
+
     return Scaffold(
       appBar: AppBar(
         title: Semantics(
-          label: 'Feed de publicaciones',
-          child: const Text('Feed'),
+          label: widget.filterUserId != null
+              ? 'Feed filtrado. Publicaciones de $username'
+              : 'Feed de publicaciones',
+          child: Text(appBarTitle),
         ),
+        // 🔊 7. Botón atrás nativo — TalkBack lo lee como "Volver"
+        leading: widget.filterUserId != null
+            ? Semantics(
+          button: true,
+          label: 'Volver al perfil',
+          onTapHint: 'Cerrar el feed filtrado y volver al perfil',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+        )
+            : null,
       ),
 
       body: posts.isEmpty
@@ -117,10 +199,12 @@ class _FeedScreenState extends State<FeedScreen> {
         ),
       )
           : ListView.builder(
+        controller: _scrollController,
         itemCount: posts.length,
         itemBuilder: (context, index) {
           final post = posts[index];
           return PostWidget(
+            key: _postKeys.isNotEmpty ? _postKeys[index] : null,
             post: post,
             username: username,
             onLike: () => _toggleLike(post),
@@ -129,7 +213,10 @@ class _FeedScreenState extends State<FeedScreen> {
         },
       ),
 
-      floatingActionButton: Semantics(
+      // Ocultar el FAB cuando estamos en el feed filtrado (es de solo lectura)
+      floatingActionButton: widget.filterUserId != null
+          ? null
+          : Semantics(
         label: 'Crear nueva publicación',
         button: true,
         child: FloatingActionButton(
