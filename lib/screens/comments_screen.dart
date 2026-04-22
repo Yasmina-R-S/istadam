@@ -17,6 +17,8 @@ class CommentsScreen extends StatefulWidget {
 class _CommentsScreenState extends State<CommentsScreen> {
   final DatabaseHelper dbHelper = DatabaseHelper();
   final TextEditingController _commentController = TextEditingController();
+  // FocusNode per gestionar l'ordre de focus ✅
+  final FocusNode _textFieldFocus = FocusNode();
 
   List<Comment> comments = [];
   String username = '';
@@ -27,7 +29,13 @@ class _CommentsScreenState extends State<CommentsScreen> {
     _loadData();
   }
 
-  // Cargar usuario + comentarios
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _textFieldFocus.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     final user = await Preferences.getUser();
     if (user != null) username = user;
@@ -45,7 +53,6 @@ class _CommentsScreenState extends State<CommentsScreen> {
     });
   }
 
-  // Añadir comentario
   void _addComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
@@ -59,16 +66,18 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
     await dbHelper.insertComment(newComment);
     _commentController.clear();
+    // Tornar el focus al camp de text per facilitar l'ús amb TalkBack ✅
+    _textFieldFocus.requestFocus();
     await _loadData();
 
-    // SnackBar accesible
+    // SnackBar amb liveRegion per anunciar immediatament el nou comentari ✅
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 2),
           content: Semantics(
             liveRegion: true,
-            label: 'Comentario añadido',
+            label: 'Comentario añadido correctamente',
             child: const Text('Comentario añadido'),
           ),
         ),
@@ -85,54 +94,58 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
       body: Column(
         children: [
-          // LISTA DE COMENTARIOS
+
+          // LLISTA DE COMENTARIS
           Expanded(
             child: comments.isEmpty
                 ? Center(
-              child: Semantics(
-                label: 'No hay comentarios todavía',
-                child: const Text('No hay comentarios todavía'),
-              ),
-            )
+                    child: Semantics(
+                      label: 'No hay comentarios todavía',
+                      child: const Text('No hay comentarios todavía'),
+                    ),
+                  )
                 : ListView.builder(
-              reverse: true,
-              itemCount: comments.length,
-              itemBuilder: (context, index) =>
-                  CommentWidget(comment: comments[index]),
-            ),
+                    reverse: true,
+                    itemCount: comments.length,
+                    itemBuilder: (context, index) =>
+                        CommentWidget(comment: comments[index]),
+                  ),
           ),
 
-          // CAJA PARA ESCRIBIR
+          // FORMULARI D'AFEGIR COMENTARI
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
               children: [
-                // Campo accesible
+
+                // Camp amb etiqueta VISIBLE (labelText, no només placeholder) ✅
                 Expanded(
-                  child: Semantics(
-                    label: 'Escribir un comentario',
-                    textField: true,
-                    child: TextField(
-                      controller: _commentController,
-                      decoration: const InputDecoration(
-                        hintText: 'Escribe un comentario…',
-                      ),
+                  child: TextField(
+                    controller: _commentController,
+                    focusNode: _textFieldFocus,
+                    decoration: const InputDecoration(
+                      labelText: 'Escribe un comentario',   // etiqueta visible ✅
+                      hintText: 'Escribe aquí…',
+                      border: OutlineInputBorder(),
                     ),
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _addComment(),
                   ),
                 ),
 
                 const SizedBox(width: 6),
 
-                // Botón enviar accesible
+                // Botó Enviar amb Semantics label clar ✅
                 Semantics(
                   button: true,
-                  label: 'Enviar comentario',
-                  onTapHint: 'Publicar este comentario',
+                  label: 'Enviar comentari',
+                  onTapHint: 'Publicar aquest comentari',
                   child: IconButton(
                     icon: const Icon(Icons.send),
                     onPressed: _addComment,
                   ),
                 ),
+
               ],
             ),
           ),
