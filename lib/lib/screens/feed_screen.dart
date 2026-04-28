@@ -7,7 +7,6 @@ import '../widgets/post_widget.dart';
 import 'add_post_screen.dart';
 import 'comments_screen.dart';
 import 'login_screen.dart';
-import 'profile_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   /// Si != null, el feed mostra només els posts d'aquest usuari (feed filtrat).
@@ -160,45 +159,6 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  Future<void> _openProfile() async {
-    final db = await dbHelper.database;
-    final userId = await dbHelper.getUserId(sessionUsername);
-    final userRows = await db.query(
-      'users',
-      where: 'id = ?',
-      whereArgs: [userId],
-    );
-    if (!mounted) return;
-    if (userRows.isEmpty) return;
-
-    final userMap = Map<String, dynamic>.from(userRows.first);
-    // Afegim camps virtuals que ProfileScreen espera
-    userMap['id'] = userId;
-    userMap['bio'] = userMap['bio'] ?? '';
-    userMap['followers'] = 0;
-    userMap['following'] = 0;
-    userMap['posts'] = posts.length;
-
-    final postRows = await db.query(
-      'posts',
-      where: 'userId = ?',
-      whereArgs: [userId],
-      orderBy: 'date DESC',
-    );
-    if (!mounted) return;
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ProfileScreen(
-          user: userMap,
-          posts: postRows.map((e) => Map<String, dynamic>.from(e)).toList(),
-        ),
-      ),
-    );
-    _loadUserAndPosts(); // refresca el feed en tornar
-  }
-
   void _openComments(Post post) async {
     await Navigator.push(
       context,
@@ -239,21 +199,6 @@ class _FeedScreenState extends State<FeedScreen> {
                 ),
               )
             : null,
-        // Botó de perfil al feed principal
-        actions: isFiltered
-            ? null
-            : [
-                Semantics(
-                  button: true,
-                  label: 'Veure perfil',
-                  onTapHint: 'Obre la teva pàgina de perfil',
-                  child: IconButton(
-                    icon: const Icon(Icons.person),
-                    tooltip: 'Perfil',
-                    onPressed: _openProfile,
-                  ),
-                ),
-              ],
       ),
 
       body: posts.isEmpty
