@@ -8,6 +8,7 @@ import 'add_post_screen.dart';
 import 'comments_screen.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   /// Si != null, el feed mostra només els posts d'aquest usuari (feed filtrat).
@@ -89,9 +90,9 @@ class _FeedScreenState extends State<FeedScreen> {
     // → feed filtrat: nom del propietari del perfil
     // → feed propi:   nom de la sessió activa
     final displayUsername =
-        (widget.filterUserId != null && widget.filterUsername != null)
-            ? widget.filterUsername!
-            : sessionUsername;
+    (widget.filterUserId != null && widget.filterUsername != null)
+        ? widget.filterUsername!
+        : sessionUsername;
 
     final loadedPosts = result.map((e) => Post.fromMap(e)).toList();
     for (var post in loadedPosts) {
@@ -145,7 +146,7 @@ class _FeedScreenState extends State<FeedScreen> {
     );
 
     final missatge =
-        wasLiked ? 'Has tret el m\'agrada' : 'Has donat m\'agrada';
+    wasLiked ? 'Has tret el m\'agrada' : 'Has donat m\'agrada';
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -211,12 +212,12 @@ class _FeedScreenState extends State<FeedScreen> {
   Widget build(BuildContext context) {
     final isFiltered = widget.filterUserId != null;
     final displayUsername =
-        (isFiltered && widget.filterUsername != null)
-            ? widget.filterUsername!
-            : sessionUsername;
+    (isFiltered && widget.filterUsername != null)
+        ? widget.filterUsername!
+        : sessionUsername;
 
     final appBarTitle =
-        isFiltered ? 'Publicacions de $displayUsername' : 'Feed';
+    isFiltered ? 'Publicacions de $displayUsername' : 'Feed';
 
     return Scaffold(
       appBar: AppBar(
@@ -230,75 +231,92 @@ class _FeedScreenState extends State<FeedScreen> {
         // Botó enrere accessible quan estem al feed filtrat
         leading: isFiltered
             ? Semantics(
-                button: true,
-                label: 'Tornar al perfil',
-                onTapHint: 'Tanca el feed filtrat i torna al perfil',
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              )
+          button: true,
+          label: 'Tornar al perfil',
+          onTapHint: 'Tanca el feed filtrat i torna al perfil',
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+        )
             : null,
-        // Botó de perfil al feed principal
+        // Botó de perfil i configuració al feed principal
         actions: isFiltered
             ? null
             : [
-                Semantics(
-                  button: true,
-                  label: 'Veure perfil',
-                  onTapHint: 'Obre la teva pàgina de perfil',
-                  child: IconButton(
-                    icon: const Icon(Icons.person),
-                    tooltip: 'Perfil',
-                    onPressed: _openProfile,
+          Semantics(
+            button: true,
+            label: 'Veure perfil',
+            onTapHint: 'Obre la teva pàgina de perfil',
+            child: IconButton(
+              icon: const Icon(Icons.person),
+              tooltip: 'Perfil',
+              onPressed: _openProfile,
+            ),
+          ),
+          Semantics(
+            button: true,
+            label: 'Configuració',
+            onTapHint: 'Obre la pantalla de configuració',
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Configuració',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SettingsScreen(),
                   ),
-                ),
-              ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
 
       body: posts.isEmpty
           ? Center(
-              child: Semantics(
-                label: 'Encara no hi ha publicacions',
-                child: const Text(
-                  'No hay publicaciones todavía',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-            )
+        child: Semantics(
+          label: 'Encara no hi ha publicacions',
+          child: const Text(
+            'No hay publicaciones todavía',
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
+      )
           : ListView.builder(
-              controller: _scrollController,
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                return PostWidget(
-                  key: _postKeys.isNotEmpty ? _postKeys[index] : null,
-                  post: post,
-                  username: post.username,
-                  onLike: () => _toggleLike(post),
-                  onComment: () => _openComments(post),
-                );
-              },
-            ),
+        controller: _scrollController,
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          final post = posts[index];
+          return PostWidget(
+            key: _postKeys.isNotEmpty ? _postKeys[index] : null,
+            post: post,
+            username: post.username,
+            onLike: () => _toggleLike(post),
+            onComment: () => _openComments(post),
+          );
+        },
+      ),
 
       // FAB només al feed principal (el filtrat és de només lectura)
       floatingActionButton: isFiltered
           ? null
           : Semantics(
-              label: 'Crear nova publicació',
-              button: true,
-              child: FloatingActionButton(
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const AddPostScreen()),
-                  );
-                  _loadUserAndPosts();
-                },
-                child: const ExcludeSemantics(child: Icon(Icons.add)),
-              ),
-            ),
+        label: 'Crear nova publicació',
+        button: true,
+        child: FloatingActionButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const AddPostScreen()),
+            );
+            _loadUserAndPosts();
+          },
+          child: const ExcludeSemantics(child: Icon(Icons.add)),
+        ),
+      ),
     );
   }
 }
