@@ -67,38 +67,8 @@ class _FeedScreenState extends State<FeedScreen> {
     sessionUsername = user;
     final db = await dbHelper.database;
 
-    // Feed filtrat per un usuari concret vs. feed de la sessió activa
-    final List<Map<String, dynamic>> result;
-    if (widget.filterUserId != null) {
-      result = await db.query(
-        'posts',
-        where: 'userId = ?',
-        whereArgs: [widget.filterUserId],
-        orderBy: 'date DESC',
-      );
-    } else {
-      final userId = await dbHelper.getUserId(sessionUsername);
-      result = await db.query(
-        'posts',
-        where: 'userId = ?',
-        whereArgs: [userId],
-        orderBy: 'date DESC',
-      );
-    }
-
-    // Nom que es mostrarà a cada post
-    // → feed filtrat: nom del propietari del perfil
-    // → feed propi:   nom de la sessió activa
-    final displayUsername =
-    (widget.filterUserId != null && widget.filterUsername != null)
-        ? widget.filterUsername!
-        : sessionUsername;
-
-    final loadedPosts = result.map((e) => Post.fromMap(e)).toList();
-    for (var post in loadedPosts) {
-      post.commentCount = await dbHelper.getCommentCount(post.id!);
-      post.username = displayUsername;
-    }
+    // Feed global persistent amb publicacions de tots els usuaris
+    final loadedPosts = await dbHelper.getAllPosts();
 
     if (!mounted) return;
     setState(() {
@@ -107,6 +77,14 @@ class _FeedScreenState extends State<FeedScreen> {
         ..clear()
         ..addAll(List.generate(posts.length, (_) => GlobalKey()));
     });
+
+// Nom que es mostrarà a cada post
+    // → feed filtrat: nom del propietari del perfil
+    // → feed propi:   nom de la sessió activa
+    final displayUsername =
+    (widget.filterUserId != null && widget.filterUsername != null)
+        ? widget.filterUsername!
+        : sessionUsername;
 
     // Anunci TalkBack i scroll al post inicial (feed filtrat)
     if (widget.filterUserId != null) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/post.dart';
 import '../theme/app_colors.dart';
+import 'dart:io';
 
 class PostWidget extends StatelessWidget {
   final Post post;
@@ -53,18 +54,40 @@ class PostWidget extends StatelessWidget {
 
             const SizedBox(height: 8.0),
 
-            // IMAGEN DEL POST amb alt text accessible
+            // IMAGEN DEL POST amb suport real per imatges locals
             Semantics(
               image: true,
               label: 'Imagen del post. ${post.description}',
-              child: Container(
-                height: 200,
-                width: double.infinity,
-                color: Colors.grey[300],
-                child: const Center(
-                  child: ExcludeSemantics(
-                    child: Icon(Icons.image, size: 50, color: Colors.grey),
-                  ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  height: 260,
+                  width: double.infinity,
+                  color: Colors.grey[200],
+                  child: (post.image.isNotEmpty &&
+                          File(post.image).existsSync())
+                      ? Image.file(
+                          File(post.image),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) {
+                            return const Center(
+                              child: Icon(
+                                Icons.broken_image_rounded,
+                                size: 60,
+                                color: Colors.grey,
+                              ),
+                            );
+                          },
+                        )
+                      : const Center(
+                          child: ExcludeSemantics(
+                            child: Icon(
+                              Icons.image_rounded,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),

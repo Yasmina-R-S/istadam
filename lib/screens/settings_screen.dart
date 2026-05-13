@@ -14,15 +14,15 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = false;
   bool _notificationsEnabled = true;
-  String _selectedLanguage = 'Català';
+  String _selectedLanguage = 'Español';
 
   final List<String> _languages = ['Català', 'Español', 'English'];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Llegim el tema actual de l'app
     _isDarkMode = InstaDAMApp.of(context)?.isDarkMode ?? false;
+    _selectedLanguage = InstaDAMApp.of(context)?.currentLanguage ?? 'Español';
   }
 
   // SnackBar accessible amb liveRegion (TalkBack el llegeix automàticament)
@@ -224,6 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (selected != null && selected != _selectedLanguage) {
       setState(() => _selectedLanguage = selected);
+      InstaDAMApp.of(context)?.setLanguage(selected);
       _showAccessibleSnackBar('Idioma canviat a $selected');
     }
   }
